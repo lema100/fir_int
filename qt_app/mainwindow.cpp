@@ -21,6 +21,7 @@ void MainWindow::rebuild_signal(void)
 {
 	auto type = ui->comboBox_signal->currentText();
 	auto ampl = ui->spinBox_ampl->value() - 1;
+	auto presamp = ui->checkBox_presamp->isChecked();
 	double value = 0;
 	double phase = ui->spinBox_phase->value();
 	double degree_per_sample = (double)ui->spinBox_signal->value() / (double)ui->spinBox_samplerate->value() * 360.0;
@@ -30,7 +31,7 @@ void MainWindow::rebuild_signal(void)
 	for (auto i : series)
 		i->clear();
 
-	for (int i = 0; i < ui->spinBox_hor->value(); i++)
+	for (int i = 0; i < (presamp ? ui->spinBox_hor->value() + fir_int_ctx.taps : ui->spinBox_hor->value()); i++)
 	{
 		if (type == "Sine")
 		{
@@ -67,22 +68,28 @@ void MainWindow::rebuild_signal(void)
 		}
 
 		value += ui->spinBox_offset->value();
-		if (value > ui->spinBox_vert->value())
+		if (value >= ui->spinBox_vert->value())
 			value = ui->spinBox_vert->value() - 1;
-		else if (value < -ui->spinBox_vert->value())
+		else if (value <= -ui->spinBox_vert->value())
 			value = -ui->spinBox_vert->value() + 1;
 
 
-		series.at(0)->append(i, value);
+		if (presamp)
+		{
+			if (i >= fir_int_ctx.taps)
+				series.at(0)->append(i - fir_int_ctx.taps, value);
+		}
+		else
+			series.at(0)->append(i, value);
 		fir_in[i] = value;
 	}
 
 	fir_int_ctx.out = fir_out;
-	fir_int_ctx.len = ui->spinBox_hor->value();
+	fir_int_ctx.len = presamp ? ui->spinBox_hor->value() + fir_int_ctx.taps : ui->spinBox_hor->value();
 	fir_int_calc(&fir_int_ctx, fir_in);
 
 	for (int i = 0; i < ui->spinBox_hor->value(); i++)
-		series.at(1)->append(i, fir_int_ctx.out[i]);
+		series.at(1)->append(i, fir_int_ctx.out[presamp ? i + fir_int_ctx.taps : i]);
 }
 
 void MainWindow::rebuild_charts(void)
@@ -110,7 +117,10 @@ void MainWindow::rebuild_charts(void)
 	}
 }
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget *parent) :
+	QMainWindow(parent),
+	ui(new Ui::MainWindow),
+	_env(QFileInfo(QCoreApplication::applicationFilePath()).fileName().split(".").first())
 {
 	ui->setupUi(this);
 	setWindowTitle(windowTitle() + "   " + __DATE__);
@@ -118,6 +128,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	chart = new QChart();
 
+	fir_int_ctx.len = 0;
+	fir_int_ctx.taps = 0;
+	fir_int_init(&fir_int_ctx, coeff_f.data());
 	rebuild_charts();
 	rebuild_signal();
 
@@ -143,43 +156,57 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_spinBox_hor_valueChanged(int i)
 {
+	(void) i;
 	rebuild_charts();
 	rebuild_signal();
 }
 
 void MainWindow::on_spinBox_vert_valueChanged(int i)
 {
+	(void) i;
 	rebuild_charts();
 	rebuild_signal();
 }
 
 void MainWindow::on_spinBox_samplerate_valueChanged(int i)
 {
+	(void) i;
 	rebuild_signal();
 }
 
 void MainWindow::on_spinBox_signal_valueChanged(int i)
 {
+	(void) i;
 	rebuild_signal();
 }
 
 void MainWindow::on_comboBox_signal_currentIndexChanged(int index)
 {
+	(void) index;
 	rebuild_signal();
 }
 
 void MainWindow::on_spinBox_ampl_valueChanged(int i)
 {
+	(void) i;
 	rebuild_signal();
 }
 
 void MainWindow::on_spinBox_phase_valueChanged(int i)
 {
+	(void) i;
 	rebuild_signal();
 }
 
 void MainWindow::on_spinBox_offset_valueChanged(int i)
 {
+	(void) i;
+	rebuild_signal();
+}
+
+void MainWindow::on_checkBox_presamp_stateChanged(int state)
+{
+	(void) state;
 	rebuild_signal();
 }
 
@@ -202,8 +229,46 @@ static QVector<double> string_to_coeff(QString str)
 
 void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 {
-	QAction insertAct("Вставить", this);
+	QAction saveAct("Save", this);
+	QAction choseAct("Select", this);
+	QAction insertAct("Paste", this);
+	QAction copyAct("Copy", this);
 
+	QObject::connect(&copyAct, &QAction::triggered, [this](void)
+	{
+		QStringList list;
+		for (const auto & i : coeff_f)
+			list.append(QString::number(i));
+		QApplication::clipboard()->setText(list.join("\n"));
+	});
+	QObject::connect(&saveAct, &QAction::triggered, [this](void)
+	{
+		bool ok;
+		QString name = QInputDialog::getText(this, "Save", "Name:", QLineEdit::EchoMode::Normal, "", &ok, Qt::WindowSystemMenuHint | Qt::WindowTitleHint);
+		if (ok && !name.isEmpty())
+			_env.set_coeff(name, coeff_f);
+	});
+	QObject::connect(&choseAct, &QAction::triggered, [this](void)
+	{
+		auto items = _env.get_coeff_list();
+
+		bool ok;
+		QString name = QInputDialog::getItem(this, "Select", "Name:", items, 0, false, &ok, Qt::WindowSystemMenuHint | Qt::WindowTitleHint);
+		if (ok && !name.isEmpty())
+		{
+			coeff_f = _env.get_coeff(name);
+			coeff_i.resize(coeff_f.size());
+			fir_int_ctx.coeff = coeff_i.data();
+			fir_int_ctx.taps = coeff_i.size();
+			fir_int_init(&fir_int_ctx, coeff_f.data());
+
+			QStringList list;
+			for(int i = 0; i < coeff_f.size(); i++)
+				list.append(QString("k[%1]:\t%2").arg(i).arg(coeff_f.at(i)));
+			list_model.setStringList(list);
+			rebuild_signal();
+		}
+	});
 	QObject::connect(&insertAct, &QAction::triggered, [this](void)
 	{
 		const QClipboard *clipboard = QApplication::clipboard();
@@ -213,11 +278,11 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 			coeff_f = string_to_coeff(mimeData->text());
 			coeff_i.resize(coeff_f.size());
 			fir_int_ctx.coeff = coeff_i.data();
-			fir_int_ctx.taps = coeff_f.size();
+			fir_int_ctx.taps = coeff_i.size();
 			fir_int_init(&fir_int_ctx, coeff_f.data());
 
 			QStringList list;
-			for(uint32_t i = 0; i < coeff_f.size(); i++)
+			for(int i = 0; i < coeff_f.size(); i++)
 				list.append(QString("k[%1]:\t%2").arg(i).arg(coeff_f.at(i)));
 			list_model.setStringList(list);
 			rebuild_signal();
@@ -227,5 +292,8 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 	QMenu contextMenu("Context menu", this);
 
 	contextMenu.addAction(&insertAct);
+	contextMenu.addAction(&copyAct);
+	contextMenu.addAction(&choseAct);
+	contextMenu.addAction(&saveAct);
 	contextMenu.exec(ui->listView->mapToGlobal(p));
 }

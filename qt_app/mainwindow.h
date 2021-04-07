@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "../fir_int/fir_int.h"
+#include "env.h"
 #include <QMainWindow>
 #include <QtCharts>
 #include <cmath>
@@ -50,6 +51,7 @@ private:
 	QVector<double> coeff_f;
 	QVector<int32_t> coeff_i;
 	fir_int_ctx_t fir_int_ctx;
+	env _env;
 
 public slots:
 	void on_spinBox_hor_valueChanged(int i);
@@ -61,6 +63,7 @@ public slots:
 	void on_spinBox_offset_valueChanged(int i);
 	void on_comboBox_signal_currentIndexChanged(int index);
 	void on_listView_customContextMenuRequested(QPoint p);
+	void on_checkBox_presamp_stateChanged(int state);
 };
 
 #endif // MAINWINDOW_H
