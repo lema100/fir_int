@@ -73,7 +73,6 @@ void MainWindow::rebuild_signal(void)
 		else if (value <= -ui->spinBox_vert->value())
 			value = -ui->spinBox_vert->value() + 1;
 
-
 		if (presamp)
 		{
 			if (i >= fir_int_ctx.taps)
@@ -128,9 +127,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	chart = new QChart();
 
-	fir_int_ctx.len = 0;
-	fir_int_ctx.taps = 0;
-	fir_int_init(&fir_int_ctx, coeff_f.data());
+	fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), 0);
 	rebuild_charts();
 	rebuild_signal();
 
@@ -230,7 +227,7 @@ static QVector<double> string_to_coeff(QString str)
 void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 {
 	QAction saveAct("Save", this);
-	QAction choseAct("Select", this);
+	QAction selectAct("Select", this);
 	QAction insertAct("Paste", this);
 	QAction copyAct("Copy", this);
 
@@ -248,7 +245,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 		if (ok && !name.isEmpty())
 			_env.set_coeff(name, coeff_f);
 	});
-	QObject::connect(&choseAct, &QAction::triggered, [this](void)
+	QObject::connect(&selectAct, &QAction::triggered, [this](void)
 	{
 		auto items = _env.get_coeff_list();
 
@@ -258,9 +255,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 		{
 			coeff_f = _env.get_coeff(name);
 			coeff_i.resize(coeff_f.size());
-			fir_int_ctx.coeff = coeff_i.data();
-			fir_int_ctx.taps = coeff_i.size();
-			fir_int_init(&fir_int_ctx, coeff_f.data());
+			fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), coeff_i.size());
 
 			QStringList list;
 			for(int i = 0; i < coeff_f.size(); i++)
@@ -277,9 +272,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 		{
 			coeff_f = string_to_coeff(mimeData->text());
 			coeff_i.resize(coeff_f.size());
-			fir_int_ctx.coeff = coeff_i.data();
-			fir_int_ctx.taps = coeff_i.size();
-			fir_int_init(&fir_int_ctx, coeff_f.data());
+			fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), fir_int_ctx.taps);
 
 			QStringList list;
 			for(int i = 0; i < coeff_f.size(); i++)
@@ -293,7 +286,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 
 	contextMenu.addAction(&insertAct);
 	contextMenu.addAction(&copyAct);
-	contextMenu.addAction(&choseAct);
+	contextMenu.addAction(&selectAct);
 	contextMenu.addAction(&saveAct);
 	contextMenu.exec(ui->listView->mapToGlobal(p));
 }
