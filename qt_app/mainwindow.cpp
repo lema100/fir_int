@@ -89,6 +89,27 @@ void MainWindow::rebuild_signal(void)
 
 	for (int i = 0; i < ui->spinBox_hor->value(); i++)
 		series.at(1)->append(i, fir_int_ctx.out[presamp ? i + fir_int_ctx.taps : i]);
+
+	double rms_in = 0, rms_out = 0;
+	double tmp_in, tmp_out;
+	double db, ratio;
+	for (int i = 0; i < ui->spinBox_hor->value(); i++)
+	{
+		tmp_out = fir_int_ctx.out[presamp ? i + fir_int_ctx.taps : i];
+		tmp_in =  fir_in[presamp ? i + fir_int_ctx.taps : i];
+		rms_out += tmp_out * tmp_out;
+		rms_in += tmp_in * tmp_in;
+	}
+
+	rms_in = sqrt(rms_in / ui->spinBox_hor->value());
+	rms_out = sqrt(rms_out / ui->spinBox_hor->value());
+	ratio = rms_out / rms_in;
+	db = log10(ratio) * 20;
+
+	ui->label_rms_in->setText(QString("Input signal rms:\t%1").arg(rms_in, 0, 'g', 6));
+	ui->label_rms_out->setText(QString("Output signal rms:\t%1").arg(rms_out, 0, 'g', 6));
+	ui->label_db->setText(QString("Ratio:\t%1\t%2db").arg(ratio, 0, 'g', 3).arg(db, 0, 'g', 6));
+
 }
 
 void MainWindow::rebuild_charts(void)
@@ -243,7 +264,10 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 		bool ok;
 		QString name = QInputDialog::getText(this, "Save", "Name:", QLineEdit::EchoMode::Normal, "", &ok, Qt::WindowSystemMenuHint | Qt::WindowTitleHint);
 		if (ok && !name.isEmpty())
+		{
 			_env.set_coeff(name, coeff_f);
+			ui->label_coeff_name->setText(QString("Coefficient: %1").arg(name));
+		}
 	});
 	QObject::connect(&selectAct, &QAction::triggered, [this](void)
 	{
@@ -262,6 +286,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 				list.append(QString("k[%1]:\t%2").arg(i).arg(coeff_f.at(i)));
 			list_model.setStringList(list);
 			rebuild_signal();
+			ui->label_coeff_name->setText(QString("Coefficient: %1").arg(name));
 		}
 	});
 	QObject::connect(&insertAct, &QAction::triggered, [this](void)
@@ -279,6 +304,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 				list.append(QString("k[%1]:\t%2").arg(i).arg(coeff_f.at(i)));
 			list_model.setStringList(list);
 			rebuild_signal();
+			ui->label_coeff_name->setText(QString("Coefficient: %1").arg("custom"));
 		}
 	});
 
