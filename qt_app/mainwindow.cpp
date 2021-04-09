@@ -26,8 +26,6 @@ void MainWindow::rebuild_signal(void)
 	double phase = ui->spinBox_phase->value();
 	double degree_per_sample = (double)ui->spinBox_signal->value() / (double)ui->spinBox_samplerate->value() * 360.0;
 
-	int16_t fir_in[10000], fir_out[10000];
-
 	for (auto i : series)
 		i->clear();
 
@@ -68,27 +66,22 @@ void MainWindow::rebuild_signal(void)
 		}
 
 		value += ui->spinBox_offset->value();
-		if (value >= ui->spinBox_vert->value())
-			value = ui->spinBox_vert->value() - 1;
-		else if (value <= -ui->spinBox_vert->value())
-			value = -ui->spinBox_vert->value() + 1;
+		if (value >= ampl)
+			value = ampl - 1;
+		else if (value <= -ampl)
+			value = -ampl + 1;
 
-		if (presamp)
-		{
-			if (i >= fir_int_ctx.taps)
-				series.at(0)->append(i - fir_int_ctx.taps, value);
-		}
-		else
-			series.at(0)->append(i, value);
 		fir_in[i] = value;
 	}
 
-	fir_int_ctx.out = fir_out;
-	fir_int_ctx.len = presamp ? ui->spinBox_hor->value() + fir_int_ctx.taps : ui->spinBox_hor->value();
-	fir_int_calc(&fir_int_ctx, fir_in);
+	uint32_t len = presamp ? ui->spinBox_hor->value() + fir_int_ctx.taps : ui->spinBox_hor->value();
+	fir_int_calc(&fir_int_ctx, fir_in, len);
 
 	for (int i = 0; i < ui->spinBox_hor->value(); i++)
+	{
 		series.at(1)->append(i, fir_int_ctx.out[presamp ? i + fir_int_ctx.taps : i]);
+		series.at(0)->append(i, fir_in[presamp ? i + fir_int_ctx.taps : i]);
+	}
 
 	double rms_in = 0, rms_out = 0;
 	double tmp_in, tmp_out;
@@ -106,9 +99,13 @@ void MainWindow::rebuild_signal(void)
 	ratio = rms_out / rms_in;
 	db = log10(ratio) * 20;
 
-	ui->label_rms_in->setText(QString("Input signal rms:\t%1").arg(rms_in, 0, 'g', 6));
-	ui->label_rms_out->setText(QString("Output signal rms:\t%1").arg(rms_out, 0, 'g', 6));
+	ui->label_rms_in->setText(QString("Input signal RMS:\t%1").arg(rms_in, 0, 'g', 6));
+	ui->label_rms_out->setText(QString("Output signal RMS:\t%1").arg(rms_out, 0, 'g', 6));
 	ui->label_db->setText(QString("Ratio:\t%1\t%2db").arg(ratio, 0, 'g', 3).arg(db, 0, 'g', 6));
+}
+
+void MainWindow::rebuild_frequency_response(void)
+{
 
 }
 
@@ -148,7 +145,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	chart = new QChart();
 
-	fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), 0);
+	fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), coeff_i.size(), fir_out, ui->spinBox_coeff_depth->value());
 	rebuild_charts();
 	rebuild_signal();
 
@@ -222,6 +219,13 @@ void MainWindow::on_spinBox_offset_valueChanged(int i)
 	rebuild_signal();
 }
 
+void MainWindow::on_spinBox_coeff_depth_valueChanged(int i)
+{
+	(void) i;
+	fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), coeff_i.size(), fir_out, ui->spinBox_coeff_depth->value());
+	rebuild_signal();
+}
+
 void MainWindow::on_checkBox_presamp_stateChanged(int state)
 {
 	(void) state;
@@ -279,7 +283,7 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 		{
 			coeff_f = _env.get_coeff(name);
 			coeff_i.resize(coeff_f.size());
-			fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), coeff_i.size());
+			fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), coeff_i.size(), fir_out, ui->spinBox_coeff_depth->value());
 
 			QStringList list;
 			for(int i = 0; i < coeff_f.size(); i++)
@@ -297,14 +301,14 @@ void MainWindow::on_listView_customContextMenuRequested(QPoint p)
 		{
 			coeff_f = string_to_coeff(mimeData->text());
 			coeff_i.resize(coeff_f.size());
-			fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), fir_int_ctx.taps);
+			fir_int_init(&fir_int_ctx, coeff_f.data(), coeff_i.data(), coeff_i.size(), fir_out, ui->spinBox_coeff_depth->value());
 
 			QStringList list;
 			for(int i = 0; i < coeff_f.size(); i++)
 				list.append(QString("k[%1]:\t%2").arg(i).arg(coeff_f.at(i)));
 			list_model.setStringList(list);
 			rebuild_signal();
-			ui->label_coeff_name->setText(QString("Coefficient: %1").arg("custom"));
+			ui->label_coeff_name->setText(QString("Coefficients: %1").arg("custom"));
 		}
 	});
 

@@ -258,6 +258,25 @@
          </spacer>
         </item>
         <item>
+         <widget class="QLabel" name="label_15">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>FIR coeff depth, bits</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QLabel" name="label_9">
           <property name="minimumSize">
            <size>
@@ -313,7 +332,7 @@
            </size>
           </property>
           <property name="minimum">
-           <number>256</number>
+           <number>128</number>
           </property>
           <property name="maximum">
            <number>65535</number>
@@ -438,10 +457,10 @@
            </size>
           </property>
           <property name="minimum">
-           <number>256</number>
+           <number>128</number>
           </property>
           <property name="maximum">
-           <number>65535</number>
+           <number>32768</number>
           </property>
           <property name="singleStep">
            <number>128</number>
@@ -532,6 +551,31 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinBox_coeff_depth">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>16</number>
+          </property>
+          <property name="value">
+           <number>16</number>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QCheckBox" name="checkBox_presamp">
@@ -817,6 +861,25 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_16">
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>200</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QLabel" name="label_coeff_name">

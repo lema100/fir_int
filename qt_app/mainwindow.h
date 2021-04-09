@@ -40,14 +40,16 @@ public:
 private:
 	void rebuild_charts(void);
 	void rebuild_signal(void);
+	void rebuild_frequency_response(void);
+
+	int16_t fir_in[10000], fir_out[10000];
 
 	Ui::MainWindow *ui;
 	QVector<QLineSeries *> series;
 	QChartView *chartView;
 	QChart *chart;
-	QTimer *timer;
-	QStringListModel list_model;
 
+	QStringListModel list_model;
 	QVector<double> coeff_f;
 	QVector<int32_t> coeff_i;
 	fir_int_ctx_t fir_int_ctx;
@@ -61,6 +63,7 @@ public slots:
 	void on_spinBox_ampl_valueChanged(int i);
 	void on_spinBox_phase_valueChanged(int i);
 	void on_spinBox_offset_valueChanged(int i);
+	void on_spinBox_coeff_depth_valueChanged(int i);
 	void on_comboBox_signal_currentIndexChanged(int index);
 	void on_listView_customContextMenuRequested(QPoint p);
 	void on_checkBox_presamp_stateChanged(int state);

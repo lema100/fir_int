@@ -40,14 +40,14 @@ const double rect16_minph_kaiser6_fc50[] =
 typedef struct
 {
 	uint32_t taps;
-	uint32_t len;
 	uint32_t step;
+	uint32_t coeff_depth;
 	int32_t *coeff;
 	int16_t *out;
 } fir_int_ctx_t;
 
-void fir_int_init(fir_int_ctx_t *ctx, double *coeff_f, int32_t *coeff_i, uint32_t taps);
-void fir_int_calc(fir_int_ctx_t *ctx, int16_t *in);
+void fir_int_init(fir_int_ctx_t *ctx, double *coeff_f, int32_t *coeff_i, uint32_t taps, int16_t *out, uint32_t coeff_depth);
+void fir_int_calc(fir_int_ctx_t *ctx, int16_t *in, uint32_t len);
 void fir_int_bystep_calc(fir_int_ctx_t *ctx, int16_t *in);
 
 #ifdef __cplusplus
