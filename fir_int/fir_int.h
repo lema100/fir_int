@@ -17,25 +17,13 @@ extern "C"
  *
 */
 
-const double rect32_minph_kaiser6_fc50[] =
-{
-	0.00187166,	0.00351974,	0.00580243,	0.0087783,
-	0.0124677,	0.0168446,	0.0218315,	0.0272984,
-	0.0330665,	0.0389165,	0.0446004,	0.049858,
-	0.0544336,	0.0580952,	0.060651,	0.0619645,
-	0.0619645,	0.060651,	0.0580952,	0.0544336,
-	0.049858,	0.0446004,	0.0389165,	0.0330665,
-	0.0272984,	0.0218315,	0.0168446,	0.0124677,
-	0.0087783,	0.00580243,	0.00351974,	0.00187166,
-};
-
-const double rect16_minph_kaiser6_fc50[] =
-{
-	0.00721055,	0.0173029,	0.0323192,	0.0514453,
-	0.0726187,	0.0928287,	0.108747,	0.117527,
-	0.117527,	0.108747,	0.0928287,	0.0726187,
-	0.0514453,	0.0323192,	0.0173029,	0.00721055,
-};
+extern const double rect48_minph_kaiser4_fc50[];
+extern const double rect32_minph_kaiser6_fc50[];
+extern const double rect32_minph_kaiser4_fc50[];
+extern const double rect32_minph_kaiser2_fc50[];
+extern const double rect24_minph_kaiser6_fc50[];
+extern const double rect20_minph_kaiser6_fc50[];
+extern const double rect16_minph_kaiser6_fc50[];
 
 typedef struct
 {
